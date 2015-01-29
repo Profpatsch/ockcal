@@ -1,10 +1,12 @@
 import Data.Time (Day, TimeOfDay)
-import Data.List ()
+import Data.List (sort)
 import System.Command (runCommand, waitForProcess, isSuccess)
 import System.Environment (getArgs, getProgName)
 import Control.Monad (unless)
 
-calendarFile :: String
+-- config
+
+calendarFile :: FilePath
 calendarFile = "cal.txt"
 
 -- the file format of the calendarFile is as follows:
@@ -13,32 +15,48 @@ calendarFile = "cal.txt"
 -- it currently gets parsed using read
 -- I will evaluate if there's any problem doing this
 
-readCalendarEvent :: String -> ((Day, TimeOfDay), String)
-readCalendarEvent line = ((read $ head dateAndTime, read $ (head . tail) dateAndTime), eventText)
+-- internal stuff
+
+data CalendarEvent = CalendarEvent Day TimeOfDay String
+  deriving (Show, Read, Eq, Ord)
+
+parseCalendarEvent :: String -> CalendarEvent
+parseCalendarEvent line = CalendarEvent (read $ head dateAndTime) (read $ (head . tail) dateAndTime) eventText
   where dateAndTime = words (takeWhile (/= '|') line)
         eventText   = dropWhile (== ' ') $ tail $ dropWhile (/= '|') line
 
-showCalendarEvent :: ((Day, TimeOfDay), String) -> String
-showCalendarEvent ((day, time), string) = "On " ++ show day ++ " at " ++ show time ++ ": " ++ string
+-- opposite of parseCalendarEvent
+showCalendarEvent :: CalendarEvent -> String
+showCalendarEvent (CalendarEvent day time text) = show day ++ " " ++ show time ++ " | " ++ text
+
+printCalendarEvent :: CalendarEvent -> String
+printCalendarEvent (CalendarEvent day time string) = "On " ++ show day ++ " at " ++ show time ++ ": " ++ string
+
+readCalendarEventsFromFile :: FilePath -> IO [CalendarEvent]
+readCalendarEventsFromFile file = do
+  calendar <- readFile file
+  return $ sort $ map parseCalendarEvent $ lines calendar
+
+-- IO actions for the subcommands
 
 listCalendarEntries :: IO ()
 listCalendarEntries = do
-  calendar <- readFile calendarFile
+  calendar <- readCalendarEventsFromFile calendarFile
 
   -- use the coreutil cal to print a nice calendar
   printCalendar <- runCommand "cal"
   exitCode <- waitForProcess printCalendar
-  
-  unless (not $ isSuccess exitCode) (error "Unable to call the coreutil 'cal'")
 
-  -- generate a simple listning of the events noted in the calendar
-  let events = map readCalendarEvent $ lines calendar
-      printable = unlines $ map (("- " ++) . showCalendarEvent) events
+  unless (isSuccess exitCode) (error "Unable to call the coreutil 'cal'")
 
-  putStr printable
+  -- generate a simple listing of the events noted in the calendar
+  let prettyEvents = unlines $ map (("- " ++) . printCalendarEvent) calendar
+
+  putStr prettyEvents
 
 addCalendarEntry :: [String] -> IO ()
-addCalendarEntry _ = return ()
+addCalendarEntry [day, time, text] = appendFile calendarFile $ showCalendarEvent $ CalendarEvent (read day) (read time) text
+addCalendarEntry _ = error "Incorrect number of arguments"
 
 printUsage :: IO ()
 printUsage = do
