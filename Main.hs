@@ -1,13 +1,17 @@
 import Data.Time (Day, TimeOfDay)
-import Data.List (sort)
+import Data.List (sort, insert)
 import System.Command (runCommand, waitForProcess, isSuccess)
 import System.Environment (getArgs, getProgName)
-import Control.Monad (unless)
+import System.Directory (removeFile, doesFileExist)
+import Control.Monad (unless, when)
 
 -- config
 
 calendarFile :: FilePath
 calendarFile = "cal.txt"
+
+temporaryFile :: FilePath
+temporaryFile = ".cal_tmp.txt"
 
 -- the file format of the calendarFile is as follows:
 -- YYYY-MM-DD HH:MM:SS | <event title>
@@ -32,10 +36,15 @@ showCalendarEvent (CalendarEvent day time text) = show day ++ " " ++ show time +
 printCalendarEvent :: CalendarEvent -> String
 printCalendarEvent (CalendarEvent day time string) = "On " ++ show day ++ " at " ++ show time ++ ": " ++ string
 
+-- helper IO functions
+
 readCalendarEventsFromFile :: FilePath -> IO [CalendarEvent]
 readCalendarEventsFromFile file = do
   calendar <- readFile file
   return $ sort $ map parseCalendarEvent $ lines calendar
+
+copyFile :: FilePath -> FilePath -> IO ()
+copyFile from to = writeFile to =<< readFile from
 
 -- IO actions for the subcommands
 
@@ -55,13 +64,16 @@ listCalendarEntries = do
   putStr prettyEvents
 
 addCalendarEntry :: [String] -> IO ()
-addCalendarEntry [day, time, text] = appendFile calendarFile $ showCalendarEvent $ CalendarEvent (read day) (read time) text
+addCalendarEntry [day, time, text] = do
+  copyFile calendarFile temporaryFile
+  calendar <- readCalendarEventsFromFile temporaryFile
+  writeFile calendarFile $ unlines $ map showCalendarEvent $ insert (CalendarEvent (read day) (read time) text) calendar
 addCalendarEntry _ = error "Incorrect number of arguments"
 
 printUsage :: IO ()
 printUsage = do
   prog <- getProgName
-  putStrLn $ prog ++ " [list|add]"
+  putStrLn $ prog ++ " [list|add]\n\n\tlist - list all calendar items\n\tadd YYYY-MM-DD HH:MM:SS title - add a event to the calendar"
 
 main :: IO ()
 main = do
@@ -72,3 +84,6 @@ main = do
        ("list":_) -> listCalendarEntries
        ("add":info)  -> addCalendarEntry info
        _          -> printUsage
+
+  temporaryFileExists <- doesFileExist temporaryFile
+  when temporaryFileExists $ removeFile temporaryFile
