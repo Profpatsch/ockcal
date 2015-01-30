@@ -1,9 +1,9 @@
-import Data.Time (Day, TimeOfDay)
+import Data.Time (getCurrentTime, LocalTime(..), utcToLocalTime, getCurrentTimeZone, TimeZone)
 import Data.List (sort, insert)
 import System.Command (runCommand, waitForProcess, isSuccess)
 import System.Environment (getArgs, getProgName)
 import System.Directory (removeFile, doesFileExist)
-import Control.Monad (unless, when)
+import Control.Monad (when)
 
 -- config
 
@@ -11,7 +11,7 @@ calendarFile :: FilePath
 calendarFile = "cal.txt"
 
 temporaryFile :: FilePath
-temporaryFile = ".cal_tmp.txt"
+temporaryFile = ".cal.tmp"
 
 -- the file format of the calendarFile is as follows:
 -- YYYY-MM-DD HH:MM:SS | <event title>
@@ -21,22 +21,22 @@ temporaryFile = ".cal_tmp.txt"
 
 -- internal stuff
 
-data CalendarEvent = CalendarEvent Day TimeOfDay String
+data CalendarEvent = CalendarEvent LocalTime String
   deriving (Show, Read, Eq, Ord)
 
 -- construct a CalendarEvent from a line in the calendarFile
 parseCalendarEvent :: String -> CalendarEvent
-parseCalendarEvent line = CalendarEvent (read $ head dateAndTime) (read $ (head . tail) dateAndTime) eventText
-  where dateAndTime = words (takeWhile (/= '|') line)
+parseCalendarEvent line = CalendarEvent (LocalTime (read $ head dateAndTime) (read $ (head . tail) dateAndTime)) eventText
+  where dateAndTime = words $ takeWhile (/= '|') line
         eventText   = dropWhile (== ' ') $ tail $ dropWhile (/= '|') line
 
 -- opposite of parseCalendarEvent
 showCalendarEvent :: CalendarEvent -> String
-showCalendarEvent (CalendarEvent day time text) = show day ++ " " ++ show time ++ " | " ++ text
+showCalendarEvent (CalendarEvent (LocalTime day time) text) = show day ++ " " ++ show time ++ " | " ++ text
 
 -- creates a string showing a CalendarEvent in a human readable form
 prettyCalendarEvent :: CalendarEvent -> String
-prettyCalendarEvent (CalendarEvent day time string) = "On " ++ show day ++ " at " ++ show time ++ ": " ++ string
+prettyCalendarEvent (CalendarEvent (LocalTime day time) string) = "On " ++ show day ++ " at " ++ show time ++ ": " ++ string
 
 -- helper IO functions
 
@@ -52,17 +52,21 @@ copyFile from to = writeFile to =<< readFile from
 
 listCalendarEntries :: IO ()
 listCalendarEntries = do
-  calendar <- readCalendarEventsFromFile calendarFile
+  localTimeZone <- getCurrentTimeZone
+  now           <- getCurrentTime
+  calendar      <- readCalendarEventsFromFile calendarFile
 
   -- use the coreutil cal to print a nice calendar
   prettyCalendar <- runCommand "cal"
-  exitCode <- waitForProcess prettyCalendar
+  exitCode       <- waitForProcess prettyCalendar
 
-  unless (isSuccess exitCode) (error "Unable to call the coreutil 'cal'")
+  when (not $ isSuccess exitCode) (error "Unable to call the coreutil 'cal'")
 
-  -- generate a simple listing of the events noted in the calendar
-  let prettyEvents = unlines $ map (("- " ++) . prettyCalendarEvent) calendar
+  -- generate a simple listing of the upcoming events noted in the calendar
+  let prettyEvents = unlines $ map (("- " ++) . prettyCalendarEvent) $
+        filter (\(CalendarEvent time _) -> time >= (utcToLocalTime localTimeZone now)) calendar
 
+  putStrLn "Upcoming Events:"
   putStr prettyEvents
 
 addCalendarEntry :: [String] -> IO ()
@@ -72,7 +76,7 @@ addCalendarEntry [day, time, text] = do
   copyFile calendarFile temporaryFile
 
   calendar <- readCalendarEventsFromFile temporaryFile
-  writeFile calendarFile $ unlines $ map showCalendarEvent $ insert (CalendarEvent (read day) (read time) text) calendar
+  writeFile calendarFile $ unlines $ map showCalendarEvent $ insert (CalendarEvent (LocalTime (read day) (read time)) text) calendar
 
 addCalendarEntry _ = error "Incorrect number of arguments"
 
