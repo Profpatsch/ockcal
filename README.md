@@ -1,15 +1,15 @@
-# µCal - the simplest possible calendar
+# ockcal - the simplest possible calendar
 
 ## Usage
 
-	µcal # lists the todos
-	µcal add 2015-12-12 13:37:00 "Celebrate leettime" # adds the event "Celebrate leettime" on 2015-12-12 at 13:37:00
+	ockcal # lists the todos
+	ockcal add 2015-12-12 13:37:00 "Celebrate leettime" # adds the event "Celebrate leettime" on 2015-12-12 at 13:37:00
 
 ## F. A. Q.
 ### How do I sync my Calendar?
 Use your favourite "Cloud" service, git-annex, Seafile, Owncloud, BTSync, syncthing etc. You could also just use good old `git`.
 
-### How do I view my calendar if µCal is not available?
+### How do I view my calendar if ockcal is not available?
 Just open the file with a text editor!
 
 ![](http://pds.exblog.jp/imgc/i=http%253A%252F%252Fpds.exblog.jp%252Fpds%252F1%252F201002%252F12%252F90%252Fa0126590_22301391.jpg,small=800,quality=75,type=jpg)

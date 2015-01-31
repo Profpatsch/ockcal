@@ -4,7 +4,7 @@ import Data.Maybe (fromJust)
 import System.Command (runCommand, waitForProcess, isSuccess)
 import System.Environment (getArgs, getProgName)
 import System.Directory (removeFile, doesFileExist)
-import Control.Monad (when)
+import Control.Monad (when, unless)
 
 -- config
 
@@ -65,13 +65,13 @@ listCalendarEntries timeRelation = do
   prettyCalendar <- runCommand "cal"
   exitCode       <- waitForProcess prettyCalendar
 
-  when (not $ isSuccess exitCode) (error "Unable to call the coreutil 'cal'")
+  unless (isSuccess exitCode) (error "Unable to call the coreutil 'cal'")
 
   -- generate a simple listing of the upcoming events noted in the calendar
   -- Note: we asume the input list is sorted. this is done by readCalendarEventsFromFile
   let filterFun (CalendarEvent time _) = time `timeRelation` utcToLocalTime localTimeZone now
       matchingEvents = filter filterFun calendar
-      enumStart      = (+) 1 $ fromJust $ findIndex filterFun calendar
+      enumStart      = if null matchingEvents then 0 else (+) 1 $ fromJust $ findIndex filterFun calendar
   putStr $ prettyCalendarEventListing matchingEvents enumStart
 
 addCalendarEntry :: [String] -> IO ()
@@ -97,7 +97,7 @@ deleteCalendarEntry _ = error "Incorrect number of arguments"
 printUsage :: IO ()
 printUsage = do
   prog <- getProgName
-  putStrLn $ prog ++ " [list|add]\n\n\tlist - list all upcoming calendar items\n\t\n\tpast - list all past calendar events\n\tadd YYYY-MM-DD HH:MM:SS title - add a event to the calendar"
+  putStrLn $ prog ++ " [command]\n\n\tlist - list all upcoming calendar items\n\tpast - list all past calendar events\n\tadd YYYY-MM-DD HH:MM:SS title - add a event to the calendar"
 
 main :: IO ()
 main = do
