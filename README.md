@@ -25,5 +25,11 @@ This is because of Haskell's [lazy](https://en.wikipedia.org/wiki/Lazy_evaluatio
 
 This is actually also a feature: If a runtime error occurs whilst calculating the data to write, we still have a safe copy which in that case also would not be deleted.
 
+### Why has it this stupid name?
+Because of [Ockham's razor](https://en.wikipedia.org/wiki/Occam%27s_razor).
+
 ## Credits
 Inspired by Steve Losch's [t](https://github.com/sjl/t/).
+
+## License
+[GPL](./LICENSE)
