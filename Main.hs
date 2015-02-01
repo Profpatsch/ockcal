@@ -119,7 +119,7 @@ deleteCalendarEntry _ = error "Incorrect number of arguments"
 printUsage :: IO ()
 printUsage = do
   prog <- getProgName
-  putStrLn $ prog ++ " [command]\n\n\tlist - list all upcoming calendar items\n\tpast - list all past calendar events\n\tadd YYYY-MM-DD HH:MM:SS title - add a event to the calendar"
+  putStrLn $ prog ++ " [command]\n\n\tlist - list all upcoming calendar items\n\tpast - list all past calendar events\n\tadd YYYY-MM-DD HH:MM:SS title - add a event to the calendar\n\tdel n - delte event number n in the calendar file"
 
 main :: IO ()
 main = do
