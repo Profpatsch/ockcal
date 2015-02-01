@@ -26,10 +26,10 @@ import Control.Monad (when, unless)
 
 -- location of the files in $HOME
 calendarFile :: IO String
-calendarFile = getEnv "HOME" >>= \x -> return (x ++ ".ockcal")
+calendarFile = (++ ".ockcal") `fmap` getEnv "HOME"
 
 temporaryFile :: IO String
-temporaryFile = getEnv "HOME" >>= \x -> return (x ++ ".ockcal.tmp")
+temporaryFile = (++ ".ockcal.tmp") `fmap` getEnv "HOME"
 
 -- the file format of the calendarFile is as follows:
 -- YYYY-MM-DD HH:MM:SS | <event title>
