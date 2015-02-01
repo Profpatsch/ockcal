@@ -3,7 +3,7 @@
 ## Installation
 1. Clone this Repository and `cd` there
 2. run `cabal install`
-3. Nobody will welcome you to the potential [cabal hell]https://wiki.haskell.org/Cabal/Survival#What_is_the_difficulty_caused_by_Cabal-install.3F)
+3. Nobody will welcome you to the potential [cabal hell](https://wiki.haskell.org/Cabal/Survival#What_is_the_difficulty_caused_by_Cabal-install.3F)
 4. Your calendar file is located at `$HOME/.ockcal`, if you want to have it somewhere else, edit `calendarFile` in `Main.hs`
 5. Have fun!
 
