@@ -18,17 +18,18 @@ import Data.Time (getCurrentTime, LocalTime(..), utcToLocalTime, getCurrentTimeZ
 import Data.List (sort, insert, findIndex)
 import Data.Maybe (fromJust)
 import System.Command (runCommand, waitForProcess, isSuccess)
-import System.Environment (getArgs, getProgName)
+import System.Environment (getArgs, getProgName, getEnv)
 import System.Directory (removeFile, doesFileExist)
 import Control.Monad (when, unless)
 
 -- config
 
-calendarFile :: FilePath
-calendarFile = "cal.txt"
+-- location of the files in $HOME
+calendarFile :: IO String
+calendarFile = getEnv "HOME" >>= \x -> return (x ++ ".ockcal")
 
-temporaryFile :: FilePath
-temporaryFile = ".cal.tmp"
+temporaryFile :: IO String
+temporaryFile = getEnv "HOME" >>= \x -> return (x ++ ".ockcal.tmp")
 
 -- the file format of the calendarFile is as follows:
 -- YYYY-MM-DD HH:MM:SS | <event title>
@@ -75,6 +76,7 @@ listCalendarEntries :: (LocalTime -> LocalTime -> Bool) -> IO ()
 listCalendarEntries timeRelation = do
   localTimeZone <- getCurrentTimeZone
   now           <- getCurrentTime
+  calendarFile  <- calendarFile
   calendar      <- readCalendarEventsFromFile calendarFile
 
   -- use the coreutil cal to print a nice calendar
@@ -94,6 +96,8 @@ addCalendarEntry :: [String] -> IO ()
 addCalendarEntry [day, time, text] = do
   -- copy the file to a temporary location
   -- see README#FAQ
+  calendarFile  <- calendarFile
+  temporaryFile <- temporaryFile
   copyFile calendarFile temporaryFile
 
   calendar <- readCalendarEventsFromFile temporaryFile
@@ -103,6 +107,8 @@ addCalendarEntry _ = error "Incorrect number of arguments"
 
 deleteCalendarEntry :: [String] -> IO ()
 deleteCalendarEntry [num] = do
+  calendarFile  <- calendarFile
+  temporaryFile <- temporaryFile
   copyFile calendarFile temporaryFile
 
   calendar <- readCalendarEventsFromFile temporaryFile
@@ -118,6 +124,12 @@ printUsage = do
 main :: IO ()
 main = do
   args <- getArgs
+  calendarFile  <- calendarFile
+  temporaryFile <- temporaryFile
+
+  -- create calendarFile if it doesn't exist
+  calendarFileExists <- doesFileExist calendarFile
+  unless calendarFileExists $ writeFile calendarFile ""
 
   case args of
        []           -> listCalendarEntries (>=)
