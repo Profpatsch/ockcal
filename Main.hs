@@ -1,4 +1,5 @@
 -- ockcal - the simplest possible calendar that can work
+
 -- Copyright (C) 2015 Lukas Epple aka sternenseemann
 --
 -- This program is free software: you can redistribute it and/or modify
@@ -18,18 +19,19 @@ import Data.Time (getCurrentTime, LocalTime(..), utcToLocalTime, getCurrentTimeZ
 import Data.List (sort, insert, findIndex)
 import Data.Maybe (fromJust)
 import System.Command (runCommand, waitForProcess, isSuccess)
-import System.Environment (getArgs, getProgName, getEnv)
-import System.Directory (removeFile, doesFileExist)
+import System.Environment (getArgs, getProgName)
+import System.Directory (removeFile, doesFileExist, getHomeDirectory)
+import System.FilePath ((</>))
 import Control.Monad (when, unless)
 
 -- config
 
 -- location of the files in $HOME
-calendarFile :: IO String
-calendarFile = (++ ".ockcal") `fmap` getEnv "HOME"
+calendarFile :: IO FilePath
+calendarFile = homeDirFile ".ockcal"
 
-temporaryFile :: IO String
-temporaryFile = (++ ".ockcal.tmp") `fmap` getEnv "HOME"
+temporaryFile :: IO FilePath
+temporaryFile = homeDirFile ".ockcal.tmp"
 
 -- the file format of the calendarFile is as follows:
 -- YYYY-MM-DD HH:MM:SS | <event title>
@@ -69,6 +71,12 @@ readCalendarEventsFromFile file = do
 
 copyFile :: FilePath -> FilePath -> IO ()
 copyFile from to = writeFile to =<< readFile from
+
+homeDirFile :: FilePath -> IO FilePath
+homeDirFile file = do
+  hd <- getHomeDirectory
+  return $ hd </> file
+
 
 -- IO actions for the subcommands
 
