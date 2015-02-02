@@ -84,8 +84,8 @@ listCalendarEntries :: (LocalTime -> LocalTime -> Bool) -> IO ()
 listCalendarEntries timeRelation = do
   localTimeZone <- getCurrentTimeZone
   now           <- getCurrentTime
-  calendarFile  <- calendarFile
-  calendar      <- readCalendarEventsFromFile calendarFile
+  cf  <- calendarFile
+  calendar      <- readCalendarEventsFromFile cf
 
   -- use the coreutil cal to print a nice calendar
   prettyCalendar <- runCommand "cal"
@@ -104,23 +104,23 @@ addCalendarEntry :: [String] -> IO ()
 addCalendarEntry [day, time, text] = do
   -- copy the file to a temporary location
   -- see README#FAQ
-  calendarFile  <- calendarFile
-  temporaryFile <- temporaryFile
-  copyFile calendarFile temporaryFile
+  cf  <- calendarFile
+  tf <- temporaryFile
+  copyFile cf tf
 
-  calendar <- readCalendarEventsFromFile temporaryFile
-  writeFile calendarFile $ unlines $ map showCalendarEvent $ insert (CalendarEvent (LocalTime (read day) (read time)) text) calendar
+  calendar <- readCalendarEventsFromFile tf
+  writeFile cf $ unlines $ map showCalendarEvent $ insert (CalendarEvent (LocalTime (read day) (read time)) text) calendar
 
 addCalendarEntry _ = error "Incorrect number of arguments"
 
 deleteCalendarEntry :: [String] -> IO ()
 deleteCalendarEntry [num] = do
-  calendarFile  <- calendarFile
-  temporaryFile <- temporaryFile
-  copyFile calendarFile temporaryFile
+  cf  <- calendarFile
+  tf <- temporaryFile
+  copyFile cf tf
 
-  calendar <- readCalendarEventsFromFile temporaryFile
-  writeFile calendarFile $ unlines $ map showCalendarEvent $ take (read num - 1) calendar ++ drop (read num) calendar
+  calendar <- readCalendarEventsFromFile tf
+  writeFile cf $ unlines $ map showCalendarEvent $ take (read num - 1) calendar ++ drop (read num) calendar
 
 deleteCalendarEntry _ = error "Incorrect number of arguments"
 
@@ -132,12 +132,12 @@ printUsage = do
 main :: IO ()
 main = do
   args <- getArgs
-  calendarFile  <- calendarFile
-  temporaryFile <- temporaryFile
+  cf  <- calendarFile
+  tf <- temporaryFile
 
   -- create calendarFile if it doesn't exist
-  calendarFileExists <- doesFileExist calendarFile
-  unless calendarFileExists $ writeFile calendarFile ""
+  calendarFileExists <- doesFileExist cf
+  unless calendarFileExists $ writeFile cf ""
 
   case args of
        []           -> listCalendarEntries (>=)
@@ -148,5 +148,5 @@ main = do
        _            -> printUsage
 
   -- delete the temporary file if it exists
-  temporaryFileExists <- doesFileExist temporaryFile
-  when temporaryFileExists $ removeFile temporaryFile
+  temporaryFileExists <- doesFileExist tf
+  when temporaryFileExists $ removeFile tf
